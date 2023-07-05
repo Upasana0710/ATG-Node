@@ -114,7 +114,7 @@ export const signin = async (req, res) => {
       await existingUser.save();
   
       // Construct the reset password link
-      const resetLink = `http://localhost:5050/user/verifyReset?id=${existingUser._id}&token=${resetToken}`; // Example reset link URL
+      const resetLink = `https://node-g6t2.onrender.com/user/verifyReset?id=${existingUser._id}&token=${resetToken}`; // Example reset link URL
   
       // Create the email content
       const emailContent = `
