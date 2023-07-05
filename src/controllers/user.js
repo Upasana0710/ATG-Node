@@ -184,7 +184,7 @@ export const resetPassword = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired token. Please try again.' });
+      return res.status(400).json({ message: 'User not found' });
     }
 
     // Check if the new password matches the confirmed password
