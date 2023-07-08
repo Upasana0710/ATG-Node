@@ -14,6 +14,7 @@ export const createPost = async (req, res) => {
     // Save the new post
     await newPost.save();
 
+    // Push the postid in creator's data
     await User.findByIdAndUpdate(req.user, {$push: {posts: newPost._id}}, {new:true});
 
     res.status(201).json(newPost);
@@ -57,5 +58,104 @@ export const getPosts = async (req, res) => {
     }
   };
 
+  export const getPost = async (req, res) => {
+    const { id } = req.params;
+  
+    try {
+      // Check if user is authenticated
+      if (!req.user) {
+        return res.status(401).json({ message: 'Unauthenticated.' });
+      }
+      // Find the post by ID
+      const post = await Post.findById(id).populate('creator');
+  
+      // Handle post not found
+      if (!post) {
+        return res.status(404).json({ message: 'Post not found.' });
+      }
+  
+      res.status(200).json(post);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  };
 
+  export const updatePost = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const post = req.body;
+  
+      // Check if user is authenticated
+      if (!req.user) {
+        return res.status(401).json({ message: 'Unauthenticated.' });
+      }
+  
+      // Validate the post ID
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ message: 'No post with this ID.' });
+      }
+  
+      // Find the post by ID
+      const existingPost = await Post.findById(id);
+  
+      // Check if the post exists
+      if (!existingPost) {
+        return res.status(404).json({ message: 'Post not found.' });
+      }
+  
+      // Check if the user is authorized to update the post
+      if (existingPost.creator._id.toString() !== req.user) {
+        return res.status(403).json({ message: 'Not authorized to update this post.' });
+      }
+  
+      // Check if the content of req and existing post is the same
+      if (
+        post.message === existingPost.message &&
+        post.selectedFile === existingPost.selectedFile &&
+        JSON.stringify(post.tags) === JSON.stringify(existingPost.tags)
+      ) {
+        return res.status(400).json({ message: 'The provided content is the same as the existing post.' });
+      }
+  
+      // Update the post
+      const updatedPost = await Post.findByIdAndUpdate(
+        id,
+        { ...post, id, updatedAt: new Date() },
+        { new: true }
+      );
+  
+      res.status(200).json(updatedPost);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  };
+
+  export const deletePost = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!req.user) return res.json({ message: 'Unauthenticated.' });
+
+        if (!mongoose.Types.ObjectId.isValid(id)) return res.status(404).json({ message: "No post with this id" });
+
+        const existingPost = await Post.findById(id);
+
+        if (existingPost.creator._id.toString() !== req.user) {
+            return res.status(403).json({ message: 'Not authorized to update this post.' });
+        }
+
+        await Post.findByIdAndRemove(id);
+
+        res.status(200).json({ message: "Deleted succesfully" });
+    } catch (error) {
+        console.log(error);
+        res.json({ message: error.message });
+    }
+
+}
+  
+  
+  
   
