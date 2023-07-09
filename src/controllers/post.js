@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import Post from '../models/post.js';
 import User from '../models/user.js';
-import { validationResult } from 'express-validator';
 
 export const createPost = async (req, res) => {
   try {
@@ -49,7 +48,7 @@ export const getPosts = async (req, res) => {
         .sort({ [sortField]: sortOrder })
         .skip(startIndex)
         .limit(limit)
-        .populate('creator');
+        .populate('creator').populate('likes').populate('comments');
   
       res.status(200).json({ posts, pagination });
     } catch (error) {
@@ -67,7 +66,7 @@ export const getPosts = async (req, res) => {
         return res.status(401).json({ message: 'Unauthenticated.' });
       }
       // Find the post by ID
-      const post = await Post.findById(id).populate('creator');
+      const post = await Post.findById(id).populate('creator').populate('likes').populate('comments');
   
       // Handle post not found
       if (!post) {
