@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 import { randomBytes } from 'crypto';
+import mongoose from 'mongoose';
 
 import User from '../models/user.js'
 
@@ -219,6 +220,31 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Get user by ID
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate the user ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ message: 'No user with this ID.' });
+    }
+
+    const user = await User.findById(id);
+
+    // Check if the user exists
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 
   
 
