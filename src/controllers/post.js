@@ -53,7 +53,7 @@ export const getPosts = async (req, res) => {
     res.status(200).json({ posts, pagination });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: 'Internal Server Error' });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -76,7 +76,7 @@ export const getPost = async (req, res) => {
     res.status(200).json(post);
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: 'Internal Server Error' });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -92,7 +92,7 @@ export const updatePost = async (req, res) => {
 
     // Validate the post ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(404).json({ message: 'No post with this ID.' });
+      return res.status(404).json({ message: 'Invalid post ID' });
     }
 
     // Find the post by ID
@@ -127,7 +127,7 @@ export const updatePost = async (req, res) => {
     res.status(200).json(updatedPost);
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: 'Internal Server Error' });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -141,7 +141,7 @@ export const deletePost = async (req, res) => {
     const existingPost = await Post.findById(id);
     // Check if user is authorised to delete the post
     if (existingPost.creator._id.toString() !== req.user) {
-      return res.status(403).json({ message: 'Not authorized to update this post.' });
+      return res.status(403).json({ message: 'Not authorized to delete this post.' });
     }
     // Post delete
     await Post.findByIdAndRemove(id);
@@ -155,33 +155,37 @@ export const deletePost = async (req, res) => {
 }
 
 export const likePost = async (req, res) => {
-  const postid = req.query.p;
-  //Check if user is authorised
-  if (!req.user) return res.json({ message: 'Unauthenticated.' });
+  try {
+    const postid = req.query.p;
+    //Check if user is authorised
+    if (!req.user) return res.json({ message: 'Unauthenticated.' });
 
-  if (!mongoose.Types.ObjectId.isValid(req.user))
-    return res.status(404).json({ message: 'Invalid post id' });
-  // Find the specific post
-  const post = await Post.findById(postid);
-  if (!post) {
-    return res.status(404).json({ message: 'No post found with this id' });
-  }
-  const user = await User.findById(req.user);
-  let updatedPost;
-  // If user already likes then pull for dislike else push for like
-  if (!post.likes.includes(req.user)) {
-    updatedPost = await Post.findByIdAndUpdate(postid, { $push: { likes: req.user } }, { new: true })
-  } else {
-    updatedPost = await Post.findByIdAndUpdate(postid, { $pull: { likes: req.user } }, { new: true })
-  }
-  // If post already present in favourites then pull to remove else push to add
-  if (!user.favourites.includes(postid)) {
-    await User.findByIdAndUpdate(req.user, { $push: { favourites: postid } }, { new: true })
-  } else {
-    await User.findByIdAndUpdate(req.user, { $pull: { favourites: postid } }, { new: true })
-  }
+    if (!mongoose.Types.ObjectId.isValid(req.user))
+      return res.status(404).json({ message: 'Invalid post id' });
+    // Find the specific post
+    const post = await Post.findById(postid);
+    if (!post) {
+      return res.status(404).json({ message: 'No post found with this id' });
+    }
+    const user = await User.findById(req.user);
+    let updatedPost;
+    // If user already likes then pull for dislike else push for like
+    if (!post.likes.includes(req.user)) {
+      updatedPost = await Post.findByIdAndUpdate(postid, { $push: { likes: req.user } }, { new: true })
+    } else {
+      updatedPost = await Post.findByIdAndUpdate(postid, { $pull: { likes: req.user } }, { new: true })
+    }
+    // If post already present in favourites then pull to remove else push to add
+    if (!user.favourites.includes(postid)) {
+      await User.findByIdAndUpdate(req.user, { $push: { favourites: postid } }, { new: true })
+    } else {
+      await User.findByIdAndUpdate(req.user, { $pull: { favourites: postid } }, { new: true })
+    }
 
-  res.json(updatedPost);
+    res.json(updatedPost);
+  } catch (error) {
+    res.json({ message: error.message });
+  }
 };
 
 

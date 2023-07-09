@@ -54,13 +54,13 @@ export const getComments = async (req, res) => {
 export const createReply = async (req, res) => {
     try {
 
-        // Chack if user is authorised
+        // Check if user is authorised
         if (!req.user) return res.json({ message: 'Unauthenticated.' });
 
         const { content } = req.body;
 
         const commentId = req.params;
-        //Chack if id is valid
+        // Check if id is valid
         if (!mongoose.Types.ObjectId.isValid(commentId)) return res.status(404).json({ message: "No comment with this id" });
         // Create new reply
         const newReply = new Comment({ content: content, creator: req.user });
@@ -80,40 +80,46 @@ export const createReply = async (req, res) => {
 
 export const updateComment = async (req, res) => {
     try {
-        if (!req.user) {
-            return res.json({ message: 'Unauthenticated.' });
-        }
-
-        const { id } = req.params;
-        const { content } = req.body;
-
-        // Validate the comment ID
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(404).json({ message: 'No comment with this ID.' });
-        }
-
-        const comment = await Comment.findById(id);
-
-        // Check if the comment exists
-        if (!comment) {
-            return res.status(404).json({ message: 'Comment not found.' });
-        }
-
-        // Check if the user is authorized to update the comment
-        if (comment.creator._id.toString() !== req.user) {
-            return res.status(403).json({ message: 'Not authorized to update this comment.' });
-        }
-
-        // Update the comment content
-        comment.content = content;
-        const updatedComment = await comment.save();
-
-        res.status(200).json(updatedComment);
+      if (!req.user) {
+        return res.json({ message: 'Unauthenticated.' });
+      }
+  
+      const { id } = req.params;
+      const { content } = req.body;
+  
+      // Validate the comment ID
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ message: 'No comment with this ID.' });
+      }
+  
+      const comment = await Comment.findById(id);
+  
+      // Check if the comment exists
+      if (!comment) {
+        return res.status(404).json({ message: 'Comment not found.' });
+      }
+  
+      // Check if the user is authorized to update the comment
+      if (comment.creator._id.toString() !== req.user) {
+        return res.status(403).json({ message: 'Not authorized to update this comment.' });
+      }
+  
+      // Check if the content is the same
+      if (comment.content === content) {
+        return res.status(400).json({ message: 'The provided content is the same as the existing comment.' });
+      }
+  
+      // Update the comment content
+      comment.content = content;
+      const updatedComment = await comment.save();
+  
+      res.status(200).json(updatedComment);
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ message: 'Internal Server Error' });
+      console.log(error);
+      res.status(500).json({ message: error.message });
     }
-};
+  };
+  
 
 
 
