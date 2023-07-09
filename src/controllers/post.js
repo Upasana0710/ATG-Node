@@ -155,6 +155,36 @@ export const getPosts = async (req, res) => {
     }
 
 }
+
+export const likePost = async (req, res) => {
+  const postid = req.query.p;
+
+  if (!req.user) return res.json({ message: 'Unauthenticated.' });
+
+  if (!mongoose.Types.ObjectId.isValid(req.user))
+      return res.status(404).json({ message: 'Invalid post id' });
+
+  const post = await Post.findById(postid);
+  if (!post) {
+      return res.status(404).json({ message: 'No post found with this id' });
+  }
+
+  const user = await User.findById(req.user);
+  
+  let updatedPost;
+  if (!post.likes.includes(req.user)) {
+      updatedPost = await Post.findByIdAndUpdate(postid, {$push: {likes: req.user}},{ new: true })
+  } else {
+      updatedPost = await Post.findByIdAndUpdate(postid, {$pull: {likes: req.user}},{ new: true })
+  }
+  if(!user.favourites.includes(postid)){
+       await User.findByIdAndUpdate(req.user, {$push: {favourites: postid}},{ new: true })
+  }else{
+      await User.findByIdAndUpdate(req.user, {$pull: {favourites: postid}},{ new: true })
+  }
+
+  res.json(updatedPost);
+};
   
   
   
