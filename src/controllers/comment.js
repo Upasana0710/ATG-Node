@@ -46,4 +46,29 @@ export const createComment = async (req, res) => {
         res.status(404).json({message: error.message});
     }
 } 
+
+export const createReply = async (req, res) => {
+    try{
+        if(!req.user) return res.json({message: 'Unauthenticated.'});
+
+        const {content} = req.body;
+
+        const commentId = req.params;
+
+        if(!mongoose.Types.ObjectId.isValid(commentId)) return res.status(404).json({message: "No comment with this id"});
+
+        const newReply = new Comment({content: content, creator: req.user });
+
+        await newReply.save();
+
+        const id = new mongoose.Types.ObjectId(commentId);
+
+        const comment = await Comment.findByIdAndUpdate(id, {$push: {replies: newReply._id}}, {new:true}).populate('replies');
+
+        res.status(200).json(comment);
+    }catch(error){
+        console.log(error);
+        res.json({message: error.message});
+    }
+}
   
