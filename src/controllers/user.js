@@ -231,7 +231,7 @@ export const getUserById = async (req, res) => {
       return res.status(404).json({ message: 'No user with this ID.' });
     }
 
-    const user = await User.findById(id);
+    const user = await User.findById(id).populate('posts');
 
     // Check if the user exists
     if (!user) {
