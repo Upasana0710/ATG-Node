@@ -146,6 +146,13 @@ export const deletePost = async (req, res) => {
     // Post delete
     await Post.findByIdAndRemove(id);
 
+    //Remove the post from the user
+    await User.findByIdAndUpdate(
+      req.user,
+      { $pull: { posts: id } },
+      { new: true }
+  );
+
     res.status(200).json({ message: "Deleted succesfully" });
   } catch (error) {
     console.log(error);
