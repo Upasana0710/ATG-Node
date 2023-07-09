@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import userRoutes from './src/routes/user.js';
 import postRoutes from './src/routes/post.js';
+import commentRoutes from './src/routes/comment.js';
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ app.use(express.urlencoded({ limit: '50mb' }));
 
 app.use('/user', userRoutes);
 app.use('/post', postRoutes);
+app.use('/comment', commentRoutes);
 
 const PORT = process.env.PORT || 5000;
 
