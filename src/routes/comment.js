@@ -5,7 +5,7 @@ import { verifyToken } from '../middleware/verifyToken.js';
 const router = express.Router();
 
 router.post('/:id', [verifyToken], createComment);
-router.get('/:id', getComments);
+router.get('/:id', [verifyToken], getComments);
 router.post('/reply/:id', [verifyToken], createReply);
 router.patch('/:id', [verifyToken], updateComment);
 router.delete('/', [verifyToken], deleteComment)
