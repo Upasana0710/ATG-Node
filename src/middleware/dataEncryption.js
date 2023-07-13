@@ -27,26 +27,38 @@ const encryptText = (text) => {
 
 // Function to decrypt data using AES algorithm
 export const decryptData = (data) => {
-    if (!data) {
-      return data;
-    }
-  
-    if (Array.isArray(data)) {
-      return data.map((item) => decryptText(item));
-    }
-    return decryptText(data);
-  };
-  
-  // Function to decrypt text using AES algorithm
-  const decryptText = (text) => {
-    if (!text) {
-      return text;
-    }
-  
-    const [iv, encryptedData] = text.split(':');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY, 'hex'), Buffer.from(iv, 'hex'));
-    let decrypted = decipher.update(Buffer.from(encryptedData, 'hex'));
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    console.log(decrypted.toString());
-    return decrypted.toString();
-  };
+  if (!data) {
+    return data;
+  }
+
+  if (Array.isArray(data)) {
+    return data.map((item) => decryptText(item));
+  }
+  return decryptText(data);
+};
+
+// Function to decrypt text using AES algorithm
+// const decryptText = (text) => {
+//   if (!text) {
+//     return text;
+//   }
+
+//   const [iv, encryptedData] = text.split(':');
+//   const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY, 'hex'), Buffer.from(iv, 'hex'));
+//   let decrypted = decipher.update(Buffer.from(encryptedData, 'hex'));
+//   decrypted = Buffer.concat([decrypted, decipher.final()]);
+//   console.log(decrypted.toString());
+//   return decrypted.toString();
+// };
+// Function to decrypt text using AES algorithm
+export const decryptText = (text) => {
+  if (!text) {
+    return text;
+  }
+
+  const [iv, encryptedData] = text.split(':');
+  const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY, 'hex'), Buffer.from(iv, 'hex'));
+  let decrypted = decipher.update(Buffer.from(encryptedData, 'hex'));
+  decrypted = Buffer.concat([decrypted, decipher.final()]);
+  return decrypted.toString();
+};

@@ -1,22 +1,49 @@
 import mongoose from 'mongoose';
 import Post from '../models/post.js';
 import User from '../models/user.js';
+import { encryptData, decryptData, decryptText } from '../middleware/dataEncryption.js';
+
 
 export const createPost = async (req, res) => {
+
   try {
-    //Validate whether user is authorised
+    // Validate whether the user is authorized
     if (!req.user) {
       return res.status(401).json({ message: 'Unauthenticated.' });
     }
-    //Create new post
-    const newPost = new Post({ ...req.body, creator: req.user });
+
+    const { message, selectedFile, tags } = req.body;
+
+    // Encrypt the post data
+    const encryptedMessage = encryptData(message);
+    const encryptedSelectedFile = encryptData(selectedFile);
+    const encryptedTags = encryptData(tags);
+
+    // Create a new post with encrypted data
+    const newPost = new Post({
+      message: encryptedMessage,
+      selectedFile: encryptedSelectedFile,
+      tags: encryptedTags,
+      creator: req.user,
+    });
+
     // Save the new post
     await newPost.save();
 
-    // Push the postid in creator's data
+    // Push the post id into the creator's data
     await User.findByIdAndUpdate(req.user, { $push: { posts: newPost._id } }, { new: true });
 
-    res.status(201).json(newPost);
+    // Decrypt the post data before sending the response
+    const decryptedMessage = decryptData(encryptedMessage);
+    const decryptedSelectedFile = decryptData(encryptedSelectedFile);
+    const decryptedTags = decryptData(encryptedTags);
+
+    res.status(201).json({
+      ...newPost.toObject(),
+      message: decryptedMessage,
+      selectedFile: decryptedSelectedFile,
+      tags: decryptedTags,
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: error.message });
@@ -25,9 +52,16 @@ export const createPost = async (req, res) => {
 
 export const getPosts = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthenticated.' });
+    }
+    const user = await User.findById(req.user);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
     // Pagination
     const page = parseInt(req.query.page) || 1; // Default page is 1
-    const limit = parseInt(req.query.limit) || 10; // Default limit is 10
+    const limit = parseInt(req.query.limit) || 1; // Default limit is 10
 
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
@@ -44,18 +78,43 @@ export const getPosts = async (req, res) => {
     const sortField = req.query.sortField || 'createdAt'; // Default sort field is 'createdAt'
     const sortOrder = req.query.sortOrder || 'desc'; // Default sort order is 'desc'
 
+
     const posts = await Post.find()
-      .sort({ [sortField]: sortOrder })
+      // .sort({ [sortField]: sortOrder })
       .skip(startIndex)
       .limit(limit)
-      .populate('creator').populate('likes').populate('comments');
+      .populate('creator')
+      .populate('likes')
+      .populate('comments');
 
-    res.status(200).json({ posts, pagination });
+    // Decrypt the post data before sending the response
+    const decryptedPosts = posts.map((post) => {
+      const [iv, encryptedMessage] = post.message.split(':');
+      const decryptedMessage = decryptText(`${iv}:${encryptedMessage}`);
+
+      const [iv2, encryptedSelectedFile] = post.selectedFile.split(':');
+      const decryptedSelectedFile = decryptText(`${iv2}:${encryptedSelectedFile}`);
+
+      const decryptedTags = post.tags.map((tag) => {
+        const [iv3, encryptedTag] = tag.split(':');
+        return decryptText(`${iv3}:${encryptedTag}`);
+      });
+
+      return {
+        ...post.toObject(),
+        message: decryptedMessage,
+        selectedFile: decryptedSelectedFile,
+        tags: decryptedTags,
+      };
+    });
+
+    res.status(200).json({ posts: decryptedPosts, pagination });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: error.message });
   }
 };
+
 
 export const getPost = async (req, res) => {
   const { id } = req.params;
@@ -65,6 +124,7 @@ export const getPost = async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ message: 'Unauthenticated.' });
     }
+
     // Find the post by ID
     const post = await Post.findById(id).populate('creator').populate('likes').populate('comments');
 
@@ -73,12 +133,26 @@ export const getPost = async (req, res) => {
       return res.status(404).json({ message: 'Post not found.' });
     }
 
-    res.status(200).json(post);
+    // Decrypt the post data
+    const decryptedMessage = decryptData(post.message);
+    const decryptedSelectedFile = decryptData(post.selectedFile);
+    const decryptedTags = decryptData(post.tags);
+
+    // Update the post object with decrypted data
+    const decryptedPost = {
+      ...post.toObject(),
+      message: decryptedMessage,
+      selectedFile: decryptedSelectedFile,
+      tags: decryptedTags,
+    };
+
+    res.status(200).json(decryptedPost);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: error.message });
   }
 };
+
 
 export const updatePost = async (req, res) => {
   try {
@@ -151,7 +225,7 @@ export const deletePost = async (req, res) => {
       req.user,
       { $pull: { posts: id } },
       { new: true }
-  );
+    );
 
     res.status(200).json({ message: "Deleted succesfully" });
   } catch (error) {

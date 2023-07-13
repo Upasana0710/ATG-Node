@@ -224,6 +224,9 @@ export const resetPassword = async (req, res) => {
 // Get user by ID
 export const getUserById = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthenticated.' });
+    }
     const { id } = req.params;
 
     // Validate the user ID
